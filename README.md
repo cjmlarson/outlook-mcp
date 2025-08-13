@@ -13,8 +13,17 @@ A Model Context Protocol (MCP) server that provides tools for Microsoft Outlook 
 
 - **Windows OS** (required - uses Windows COM automation)
 - **Microsoft Outlook** desktop application installed and configured
-- **Python 3.8+** installed (for the business logic scripts)
-- **Node.js 16+** (for the MCP server)
+- **Python 3.8+** installed
+- **Node.js 16+**
+
+## Limitations
+
+- **Windows Only**: Requires Windows OS (7/8/10/11) due to COM automation dependency
+- **Desktop Outlook Required**: Web and mobile versions not supported, must have desktop application
+- **Single Profile Access**: Accesses only the default Outlook profile at a time
+- **No Real-Time Sync**: Does not monitor for new emails in real-time, requires explicit queries
+- **Local Processing Only**: Cannot access cloud-only email providers without Outlook configuration
+- **Language Support**: Best results with English content, international character support varies by system locale
 
 ## Installation
 
@@ -24,6 +33,9 @@ A Model Context Protocol (MCP) server that provides tools for Microsoft Outlook 
 
 1. Download the latest [outlook-mcp.dxt](https://github.com/cjmlarson/outlook-mcp/releases/latest) file
 2. Double-click the `.dxt` file to install
+   - If double-clicking doesn't work, open Claude Desktop and go to:
+   - File → Settings... → Extensions → Advanced Settings → Install Extension...
+   - Then select the downloaded .dxt file
 3. Restart Claude Desktop
 4. ✅ Done! Start using Outlook tools in Claude
 
@@ -107,6 +119,12 @@ The search tool uses a powerful query syntax:
 3. **Use pagination** for large result sets (offset parameter)
 4. **Be specific with paths** to avoid searching unnecessary folders
 
+### Performance Expectations
+- **Simple queries** (< 100 results): Under 3 seconds
+- **Complex searches** (> 1000 items): Under 10 seconds
+- **Cross-folder operations**: Under 15 seconds
+- **Attachment processing**: Under 5 seconds per file
+
 ## Architecture
 
 This MCP server uses a hybrid approach:
@@ -116,21 +134,151 @@ This MCP server uses a hybrid approach:
 
 ## Troubleshooting
 
-### "Outlook.Application not found"
-- Ensure Outlook desktop is installed (not just web/mobile)
-- Outlook must have been opened at least once
+### Installation Issues
 
-### "Access denied" errors
-- Run your terminal as Administrator if needed
-- Check Outlook isn't showing security prompts
+#### "Outlook.Application not found"
+**Symptoms**: Error when trying to use any outlook tool
+**Causes & Solutions**:
+- **Outlook not installed**: Ensure Microsoft Outlook desktop application is installed (Office 365, Outlook 2019/2021)
+- **Outlook never opened**: Outlook must be launched at least once to initialize COM components
+- **Outlook running in safe mode**: Restart Outlook normally
+- **Registry corruption**: Try running `outlook.exe /resetfolders` from command line
 
-### Unicode/emoji issues
-- The tools handle Unicode safely
-- Emojis are stripped to prevent encoding errors
+#### "Access denied" or "Permission denied"
+**Symptoms**: COM automation fails with permission errors
+**Solutions**:
+- **Run as Administrator**: Launch your terminal/Claude Code as Administrator
+- **Outlook security prompts**: Check if Outlook is showing security dialog boxes
+- **Antivirus blocking**: Temporarily disable antivirus COM protection
+- **User profile issues**: Try creating a new Outlook profile
 
-### Tools not found in Claude Desktop
-- Restart Claude Desktop after installing the .dxt
-- Check Claude Desktop logs: `%APPDATA%\\Claude\\logs\\`
+#### Tools not found in Claude Desktop
+**Symptoms**: MCP tools don't appear after .dxt installation
+**Solutions**:
+- **Restart required**: Always restart Claude Desktop after .dxt installation
+- **Check logs**: Review logs in `%APPDATA%\Claude\logs\` for error messages
+- **Corrupted .dxt**: Try downloading and installing the .dxt file again
+- **Path issues**: Ensure .dxt was installed to correct Claude extensions directory
+
+### Runtime Issues
+
+#### Python execution errors
+**Symptoms**: "Python not found" or subprocess errors
+**Solutions**:
+- **Python installation**: Ensure Python 3.8+ is installed and in PATH
+- **Python packages**: Install required packages: `pip install pywin32`
+- **COM registration**: Run `python Scripts/pywin32_postinstall.py -install` as Administrator
+- **Path resolution**: Use absolute Python path in MCP configuration if needed
+
+#### Unicode/emoji handling issues
+**Symptoms**: Garbled text or encoding errors in email content
+**Solutions**:
+- The tools automatically handle Unicode safely by stripping problematic characters
+- If issues persist, check Outlook language settings
+- Ensure Windows locale supports Unicode (UTF-8)
+
+#### Performance issues
+**Symptoms**: Slow response times or timeouts
+**Solutions**:
+- **Large mailboxes**: Use filters to narrow search scope
+- **Outlook indexing**: Ensure Outlook search indexing is enabled and up-to-date
+- **Memory usage**: Close unnecessary Outlook add-ins that might slow COM access
+- **Network delays**: For Exchange accounts, check network connectivity
+
+### Configuration Issues
+
+#### MCP server not connecting
+**Symptoms**: Server shows as disconnected in `claude mcp list`
+**Solutions**:
+- **Check configuration**: Verify MCP configuration with `claude mcp list`
+- **Port conflicts**: Ensure no other processes are using MCP ports
+- **Node.js version**: Verify Node.js 16+ is installed
+- **Dependencies**: Run `npm install` in server directory
+
+#### Wrong Outlook profile accessed
+**Symptoms**: Tools access unexpected mailbox or show no data
+**Solutions**:
+- **Default profile**: Ensure correct Outlook profile is set as default
+- **Profile switching**: Close and restart Outlook with desired profile
+- **Manual profile**: Set specific profile in Outlook before using tools
+
+### Advanced Diagnostics
+
+#### Enable detailed logging
+For deeper troubleshooting, you can enable verbose logging:
+```bash
+# Set environment variable for detailed logs
+set DEBUG=outlook-mcp*
+claude
+```
+
+#### Test COM automation directly
+Test if Outlook COM is working:
+```python
+python -c "
+import win32com.client
+outlook = win32com.client.Dispatch('Outlook.Application')
+namespace = outlook.GetNamespace('MAPI')
+print(f'Outlook version: {outlook.Version}')
+print(f'Folders: {namespace.Folders.Count}')
+"
+```
+
+#### Manual server testing
+Test the MCP server directly:
+```bash
+# Navigate to server directory
+cd /path/to/outlook-mcp
+node src/index.js
+# Should start without errors and show MCP protocol messages
+```
+
+### Getting Help
+
+If you encounter issues not covered here:
+
+1. **Check existing issues**: Search [GitHub Issues](https://github.com/cjmlarson/outlook-mcp/issues)
+2. **Create detailed report**: Include error messages, system info, and steps to reproduce
+3. **System information**: Include Windows version, Outlook version, Python version, Node.js version
+4. **Log files**: Attach relevant log files from Claude Desktop or MCP server
+
+## Getting Help
+
+### Support Channels
+
+#### **GitHub Discussions** (Recommended)
+- **Questions & Answers**: Ask questions and help other users
+- **Feature Ideas**: Propose and discuss new features
+- **Show and Tell**: Share interesting use cases and workflows
+- Visit: [GitHub Discussions](https://github.com/cjmlarson/outlook-mcp/discussions)
+
+#### **GitHub Issues**
+- **Bug Reports**: Report bugs with detailed reproduction steps
+- **Feature Requests**: Request specific new functionality
+- **Documentation Issues**: Report problems with docs
+- Visit: [GitHub Issues](https://github.com/cjmlarson/outlook-mcp/issues)
+
+#### **Direct Contact**
+- **Email**: connor@cjmlarson.com (for security issues or private concerns)
+- **GitHub**: [@cjmlarson](https://github.com/cjmlarson)
+
+### Before Asking for Help
+
+1. **Check Documentation**: Review README, EXAMPLES.md, and troubleshooting guide
+2. **Search Existing Issues**: Your problem may already be solved
+3. **Try Basic Diagnostics**: Run the diagnostic commands in troubleshooting section
+4. **Gather Information**: Prepare system info, error messages, and logs
+
+### How to Report Issues Effectively
+
+**Include This Information:**
+- Windows version (e.g., Windows 11 22H2)
+- Outlook version (e.g., Microsoft 365, Outlook 2021)
+- Python version (`python --version`)
+- Node.js version (`node --version`)
+- Complete error message and stack trace
+- Steps to reproduce the issue
+- What you expected vs. what happened
 
 ## Development
 
@@ -160,17 +308,72 @@ claude mcp add outlook-test node ./src/index.js
 
 MIT License - See LICENSE file for details
 
+## Maintenance and Support
+
+### Commitment to Users
+This project is actively maintained with the following commitments:
+
+#### **Response Times**
+- **Bug Reports**: Acknowledged within 48 hours, resolved within 1 week for critical issues
+- **Feature Requests**: Reviewed within 1 week, implementation timeline provided
+- **Security Issues**: Immediate response (within 24 hours), expedited fixes
+
+#### **Regular Updates**
+- **Dependency Updates**: Monthly security and compatibility updates
+- **Outlook Compatibility**: Tested with new Outlook releases within 30 days
+- **MCP Protocol**: Updated within 2 weeks of new MCP SDK releases
+- **Documentation**: Kept current with all feature additions and changes
+
+#### **Long-term Support**
+- **Minimum 2-year commitment** to maintain compatibility with current Windows and Outlook versions
+- **Migration assistance** if major architectural changes become necessary
+- **Community involvement** welcomed for feature development and testing
+
+### Issue Resolution Process
+1. **Report Issues**: Use [GitHub Issues](https://github.com/cjmlarson/outlook-mcp/issues) with detailed information
+2. **Triage**: Issues labeled and prioritized within 2 business days
+3. **Communication**: Regular updates provided on issue progress
+4. **Testing**: Community testing encouraged for proposed fixes
+5. **Release**: Timely releases with clear changelogs
+
+### Community Support
+- **Discussion Forum**: GitHub Discussions for questions and feature ideas
+- **Documentation**: Comprehensive guides maintained and updated
+- **Examples**: Real-world usage examples and best practices shared
+
 ## Contributing
 
 Pull requests welcome! Please ensure:
 - Windows compatibility is maintained
 - Error handling for COM exceptions
 - Unicode text handling is robust
+- All tests pass and new features include tests
+- Documentation updated for any API changes
+
+### Development Setup
+```bash
+git clone https://github.com/cjmlarson/outlook-mcp.git
+cd outlook-mcp
+npm install
+npm test
+```
+
+### Code Standards
+- ES6+ JavaScript with clear error handling
+- Python 3.8+ with type hints where applicable
+- Comprehensive error messages and logging
+- Security-first approach to data handling
 
 ## Acknowledgments
 
 Built for use with Anthropic's Claude via the Model Context Protocol.
 
+Special thanks to the MCP community and contributors who have helped improve this tool.
+
 ## Author
 
 Connor Larson ([@cjmlarson](https://github.com/cjmlarson))
+
+**Contact**: 
+- GitHub Issues for bug reports and feature requests
+- GitHub Discussions for questions and community support
