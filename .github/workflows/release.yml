@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v2.0.1)'
+        required: true
+
+jobs:
+  build-dxt:
+    name: Build Desktop Extension (.dxt)
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install DXT CLI
+        run: npm install -g @anthropic-ai/dxt
+      
+      - name: Create desktop-extension structure
+        run: |
+          mkdir -p desktop-extension/server
+          cp -r outlook_mcp desktop-extension/server/
+          cp desktop-extension/manifest.json desktop-extension/
+          cp desktop-extension/server/main.py desktop-extension/server/
+      
+      - name: Bundle Python dependencies
+        run: |
+          pip install --target desktop-extension/lib mcp pywin32
+      
+      - name: Pack DXT
+        run: |
+          dxt pack desktop-extension
+          mv *.dxt outlook-mcp-${{ github.event.inputs.version || github.ref_name }}.dxt
+      
+      - name: Upload DXT artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-extension
+          path: '*.dxt'
+  
+  build-python:
+    name: Build Python Package
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install build dependencies
+        run: |
+          pip install build twine
+      
+      - name: Build package
+        run: python -m build
+      
+      - name: Upload Python artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/*
+  
+  create-release:
+    name: Create GitHub Release
+    needs: [build-dxt, build-python]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          name: Release ${{ github.event.inputs.version || github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            desktop-extension/*.dxt
+            python-package/*
+          body: |
+            ## Installation
+            
+            ### Claude Desktop Users
+            Download and double-click `outlook-mcp-${{ github.event.inputs.version || github.ref_name }}.dxt`
+            
+            ### Claude Code / Developers  
+            ```bash
+            pip install outlook-mcp
+            ```
+            
+            ## Changes
+            - Desktop Extension (.dxt) for one-click installation
+            - Python package for pip installation
+            - Both Node.js and Python implementations available
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [build-python]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Download Python package
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package
+          path: dist
+      
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true

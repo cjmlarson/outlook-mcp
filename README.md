@@ -17,26 +17,42 @@ A Model Context Protocol (MCP) server that provides tools for Microsoft Outlook 
 
 ## Installation
 
-Choose between Python (recommended) or Node.js installation:
+Choose the installation method based on your Claude application:
 
-### Option 1: Python Package (Recommended) 🐍
+### For Claude Desktop Users (Easy! 🎯)
 
-Single command installation with all dependencies:
+**One-click installation - no terminal required:**
+
+1. Download the latest [outlook-mcp.dxt](https://github.com/cjmlarson/outlook-mcp/releases/latest) file
+2. Double-click the `.dxt` file to install
+3. Restart Claude Desktop
+4. ✅ Done! Start using Outlook tools in Claude
+
+### For Claude Code Users (Developers 💻)
+
+**Install via pip (Recommended):**
 
 ```bash
+# Install from PyPI (coming soon)
 pip install outlook-mcp
+
+# Configure with Claude Code
+claude mcp add outlook python -m outlook_mcp.server
 ```
 
-Or install from source:
+**Or install from source:**
 ```bash
 git clone https://github.com/cjmlarson/outlook-mcp.git
 cd outlook-mcp
 pip install .
+
+# Configure with Claude Code
+claude mcp add outlook python -m outlook_mcp.server
 ```
 
-### Option 2: Node.js Package
+### Alternative: Node.js Version
 
-For the original Node.js version:
+For the original Node.js implementation:
 
 ```bash
 # Clone and install
@@ -46,30 +62,25 @@ npm install
 
 # Also need Python dependencies
 pip install pywin32
+
+# Configure with Claude
+claude mcp add outlook node src/index.js
 ```
 
 ## Configuration
 
 ### Claude Desktop
 
-#### Python version:
-```json
-{
-  "mcpServers": {
-    "outlook": {
-      "command": "outlook-mcp"
-    }
-  }
-}
-```
+If you installed via `.dxt` file, **no configuration needed!** The extension configures itself automatically.
 
-#### Node.js version:
+For manual installation only:
+
 ```json
 {
   "mcpServers": {
     "outlook": {
-      "command": "node",
-      "args": ["C:/path/to/outlook-mcp/src/index.js"]
+      "command": "python",
+      "args": ["-m", "outlook_mcp.server"]
     }
   }
 }

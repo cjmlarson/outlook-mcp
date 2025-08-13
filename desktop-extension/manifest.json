@@ -1,0 +1,28 @@
+{
+  "dxt_version": "0.1",
+  "name": "outlook-mcp",
+  "version": "2.0.0",
+  "description": "Microsoft Outlook integration for Claude - search, read, and filter emails, calendar events, contacts, and tasks",
+  "author": {
+    "name": "Connor Larson",
+    "url": "https://github.com/cjmlarson"
+  },
+  "server": {
+    "type": "python",
+    "entry_point": "server/main.py",
+    "mcp_config": {
+      "command": "python",
+      "args": ["${__dirname}/server/main.py"],
+      "env": {
+        "PYTHONPATH": "${__dirname}/lib:${__dirname}/server"
+      }
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["win32"],
+    "runtimes": {
+      "python": ">=3.8,<4.0"
+    }
+  }
+}
