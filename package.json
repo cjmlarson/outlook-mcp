@@ -22,7 +22,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/outlook-mcp"
+    "url": "https://github.com/cjmlarson/outlook-mcp"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

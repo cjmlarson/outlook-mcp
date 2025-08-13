@@ -27,7 +27,7 @@ pip install pywin32
 ### 2. Install the MCP server
 
 ```bash
-git clone https://github.com/yourusername/outlook-mcp.git
+git clone https://github.com/cjmlarson/outlook-mcp.git
 cd outlook-mcp
 npm install
 ```
@@ -150,3 +150,7 @@ Pull requests welcome! Please ensure:
 ## Acknowledgments
 
 Built for use with Anthropic's Claude via the Model Context Protocol.
+
+## Author
+
+Connor Larson ([@cjmlarson](https://github.com/cjmlarson))
