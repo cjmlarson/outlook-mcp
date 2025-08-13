@@ -1,0 +1,17 @@
+{
+  "dxt_version": "0.1",
+  "name": "outlook-mcp",
+  "version": "2.1.0",
+  "description": "Microsoft Outlook integration for Claude Desktop via Model Context Protocol",
+  "author": {
+    "name": "Connor Larson"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"]
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "outlook-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Microsoft Outlook integration - search, read, and filter emails/calendar items",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node src/test-connection.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "outlook",
+    "email",
+    "calendar",
+    "windows",
+    "automation",
+    "claude"
+  ],
+  "author": "Connor Larson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cjmlarson/outlook-mcp"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.25.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "os": [
+    "win32"
+  ]
+}
