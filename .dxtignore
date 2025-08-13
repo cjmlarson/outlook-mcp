@@ -1,0 +1,26 @@
+# Git files
+.git/
+.gitignore
+
+# Node development files
+node_modules/
+package-lock.json
+.npmignore
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Testing files
+test_*.py
+examples/
+
+# Build artifacts
+scripts/
+
+# Documentation
+TESTING_RESULTS.md
+
+# OS files
+.DS_Store
+Thumbs.db

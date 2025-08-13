@@ -1,0 +1,22 @@
+# Development files
+.git/
+.gitignore
+.dxtignore
+*.dxt
+
+# Testing files
+test_*.py
+examples/
+node_modules/
+package-lock.json
+
+# Documentation (except README)
+TESTING_RESULTS.md
+
+# Build artifacts
+scripts/
+desktop-extension/
+
+# OS files
+.DS_Store
+Thumbs.db

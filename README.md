@@ -13,50 +13,42 @@ A Model Context Protocol (MCP) server that provides tools for Microsoft Outlook 
 
 - **Windows OS** (required - uses Windows COM automation)
 - **Microsoft Outlook** desktop application installed and configured
-- **Python 3.8+** with `pywin32` package
-- **Node.js 16+** for the MCP server
+- **Python 3.8+** installed (for the business logic scripts)
+- **Node.js 16+** (for the MCP server)
 
 ## Installation
 
-### 1. Install Python dependencies
+### For Claude Desktop (Recommended) 🎯
+
+**One-click installation with .dxt file:**
+
+1. Download the latest [outlook-mcp.dxt](https://github.com/cjmlarson/outlook-mcp/releases/latest) file
+2. Double-click the `.dxt` file to install
+3. Restart Claude Desktop
+4. ✅ Done! Start using Outlook tools in Claude
+
+### For Claude Code 💻
+
+**Install globally via npm:**
 
 ```bash
-pip install pywin32
+npm install -g outlook-mcp
+
+# Add to Claude Code
+claude mcp add -s global outlook outlook-mcp
 ```
 
-### 2. Install the MCP server
-
+**Or install from source:**
 ```bash
 git clone https://github.com/cjmlarson/outlook-mcp.git
 cd outlook-mcp
 npm install
-```
 
-## Configuration
-
-### Claude Desktop
-
-Add to your Claude Desktop config file (`%APPDATA%\Claude\claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "outlook": {
-      "command": "node",
-      "args": ["C:/path/to/outlook-mcp/src/index.js"]
-    }
-  }
-}
-```
-
-### Claude Code
-
-```bash
-# Add to global scope (available in all projects)
-claude mcp add -s global outlook node C:/path/to/outlook-mcp/src/index.js
+# Add to Claude Code (global scope)
+claude mcp add -s global outlook node /path/to/outlook-mcp/src/index.js
 
 # Or add to current project only
-claude mcp add outlook node C:/path/to/outlook-mcp/src/index.js
+claude mcp add outlook node /path/to/outlook-mcp/src/index.js
 ```
 
 ## Usage Examples
@@ -115,6 +107,13 @@ The search tool uses a powerful query syntax:
 3. **Use pagination** for large result sets (offset parameter)
 4. **Be specific with paths** to avoid searching unnecessary folders
 
+## Architecture
+
+This MCP server uses a hybrid approach:
+- **Node.js** handles the MCP protocol and process management
+- **Python** scripts handle the actual Outlook COM automation
+- This provides the best of both worlds: reliable subprocess handling and robust COM interaction
+
 ## Troubleshooting
 
 ### "Outlook.Application not found"
@@ -128,6 +127,27 @@ The search tool uses a powerful query syntax:
 ### Unicode/emoji issues
 - The tools handle Unicode safely
 - Emojis are stripped to prevent encoding errors
+
+### Tools not found in Claude Desktop
+- Restart Claude Desktop after installing the .dxt
+- Check Claude Desktop logs: `%APPDATA%\\Claude\\logs\\`
+
+## Development
+
+### Building .dxt files
+```bash
+# TODO: Add build script
+npm run build:dxt
+```
+
+### Testing locally
+```bash
+# Test the Node.js server
+node src/index.js
+
+# Test with Claude Code
+claude mcp add outlook-test node ./src/index.js
+```
 
 ## Security Notes
 

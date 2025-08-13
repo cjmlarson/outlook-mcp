@@ -1,8 +1,7 @@
 {
   "mcpServers": {
     "outlook": {
-      "command": "node",
-      "args": ["C:/Users/yourusername/outlook-mcp/src/index.js"]
+      "command": "outlook-mcp"
     }
   }
 }
