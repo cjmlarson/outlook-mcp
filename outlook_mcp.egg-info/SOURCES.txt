@@ -1,0 +1,17 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+outlook_mcp/__init__.py
+outlook_mcp/outlook_filter.py
+outlook_mcp/outlook_list.py
+outlook_mcp/outlook_read.py
+outlook_mcp/outlook_search.py
+outlook_mcp/outlook_utils.py
+outlook_mcp/server.py
+outlook_mcp.egg-info/PKG-INFO
+outlook_mcp.egg-info/SOURCES.txt
+outlook_mcp.egg-info/dependency_links.txt
+outlook_mcp.egg-info/entry_points.txt
+outlook_mcp.egg-info/requires.txt
+outlook_mcp.egg-info/top_level.txt
