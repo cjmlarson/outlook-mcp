@@ -27,6 +27,38 @@ def safe_text(text, max_length=None):
         return safe[:max_length]
     return safe
 
+def format_compact_date(dt):
+    """Format datetime to compact string like 'Aug 14' or 'Aug 14 15:30'."""
+    if dt is None:
+        return None
+    
+    try:
+        # Convert string to datetime if needed
+        if isinstance(dt, str):
+            dt = datetime.fromisoformat(dt.replace('Z', '+00:00'))
+        
+        # Format based on whether time is meaningful
+        now = datetime.now()
+        if dt.date() == now.date():
+            # Today - show time
+            return dt.strftime('%b %d %H:%M')
+        elif dt.year == now.year:
+            # This year - just month and day
+            return dt.strftime('%b %d')
+        else:
+            # Different year - include year
+            return dt.strftime('%b %d %Y')
+    except:
+        return str(dt)[:16] if dt else None
+
+def clean_dict(d):
+    """Remove null, empty string, and empty array values from dictionary."""
+    cleaned = {}
+    for key, value in d.items():
+        if value is not None and value != "" and value != []:
+            cleaned[key] = value
+    return cleaned
+
 def parse_outlook_path(path_str):
     """Parse 'account/folder/subfolder' into (account, folder_path)"""
     parts = path_str.split('/')
@@ -217,22 +249,29 @@ def search_folder(folder, pattern, args):
             except:
                 folder_path = folder.Name
             
-            # Build result dict with metadata
+            # Build result dict with metadata (optimized for token usage)
             # Get appropriate date field based on item type
             if hasattr(item, 'Start'):
-                date_value = item.Start.isoformat() if item.Start else None
+                date_value = item.Start
             elif hasattr(item, 'ReceivedTime'):
-                date_value = item.ReceivedTime.isoformat() if item.ReceivedTime else None
+                date_value = item.ReceivedTime
             else:
                 date_value = None
             
+            # Build compact result dictionary
             result = {
                 'entry_id': encode_entry_id(item.EntryID),  # Base64 encoded to save tokens
                 'subject': safe_text(item.Subject),
-                'from': safe_text(getattr(item, 'SenderName', getattr(item, 'Organizer', ''))),
-                'date': date_value,
-                'path': folder_path
+                'sender': safe_text(getattr(item, 'SenderName', getattr(item, 'Organizer', ''))),
+                'received': format_compact_date(date_value)
             }
+            
+            # Add optional fields only if they have meaningful values
+            if hasattr(item, 'Attachments') and item.Attachments.Count > 0:
+                result['has_attachments'] = True
+            
+            if hasattr(item, 'UnRead'):
+                result['is_read'] = not item.UnRead
             
             # For content mode, extract match snippets
             if args.output_mode == 'content':
@@ -276,8 +315,8 @@ def search_folder(folder, pattern, args):
                     if len(matches) >= 3:
                         break
                 
-                result['matches'] = matches
-                result['match_count'] = len(matches)
+                if matches:  # Only add if there are matches
+                    result['matches'] = matches[:2]  # Limit to 2 snippets for token savings
             
             results.append(result)
         
@@ -290,13 +329,16 @@ def search_folder(folder, pattern, args):
 def display_results(results, output_mode='list', offset=0):
     """Display results as JSON with pagination"""
     
-    PAGE_SIZE = 25
+    PAGE_SIZE = 10  # Reduced from 25 for token optimization
     total = len(results)
     
     # Apply pagination
     start_idx = offset
     end_idx = min(start_idx + PAGE_SIZE, total)
     paginated_results = results[start_idx:end_idx]
+    
+    # Clean results to remove empty fields
+    cleaned_results = [clean_dict(r) for r in paginated_results]
     
     # Build JSON output
     output = {
@@ -306,7 +348,7 @@ def display_results(results, output_mode='list', offset=0):
             'limit': PAGE_SIZE,
             'has_more': end_idx < total
         },
-        'results': paginated_results
+        'results': cleaned_results
     }
     
     # Output as JSON

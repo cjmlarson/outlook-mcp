@@ -162,14 +162,14 @@ server.registerTool('outlook_filter', {
 
 // Tool: Outlook Search (content search)
 server.registerTool('outlook_search', {
-  description: 'Fast Outlook search using DASL queries. Search syntax: Space=OR ("United ZRH" finds either term), Ampersand=AND ("United&ZRH" finds both), Combined ("ZRH EWR&United" = (ZRH OR EWR) AND United). Path is REQUIRED - use outlook_list first to find folders.',
+  description: 'Fast Outlook search using DASL queries. Search syntax: Space=OR ("United ZRH" finds either term), Ampersand=AND ("United&ZRH" finds both), Combined ("ZRH EWR&United" = (ZRH OR EWR) AND United). Path is REQUIRED - use outlook_list first to find folders. Results limited to 10 per page for token efficiency.',
   inputSchema: {
     pattern: z.string().describe('Search pattern. Space=OR, Ampersand=AND. Examples: "United", "ZRH EWR", "flight&ZRH EWR"'),
     path: z.string().describe('Path to search (REQUIRED). Format: "account/folder". Use outlook_list to find paths.'),
     output_mode: z.enum(['list', 'content']).default('list').describe('Output mode: list (fast, metadata only) or content (with match snippets)'),
     since: z.string().default('').describe('Start date (YYYY-MM-DD)'),
     until: z.string().default('').describe('End date (YYYY-MM-DD)'),
-    offset: z.number().default(0).describe('Pagination offset (results shown 25 at a time)')
+    offset: z.number().default(0).describe('Pagination offset (results shown 10 at a time)')
   }
 }, async ({ pattern, path: outlookPath, output_mode = 'list', since = '', until = '', offset = 0 }) => {
   try {
