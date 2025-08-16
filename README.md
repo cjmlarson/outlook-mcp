@@ -1,19 +1,19 @@
 # Outlook MCP Server
 
-A Model Context Protocol (MCP) server that provides tools for Microsoft Outlook integration. Search, read, list, and filter emails, calendar events, contacts, and tasks directly from Claude Desktop or Claude Code.
+A Model Context Protocol (MCP) server that provides tools for Microsoft Outlook integration. Search, read, list, and filter emails, calendar events, contacts, and tasks directly from Claude Desktop or Claude Code. Works with any accounts loaded into (classic) Outlook, incl. Outlook/Exchange, IMAP, etc.
 
 ## Features
 
-- **outlook_list** - Browse accounts, folders, and items (like Unix `ls`)
-- **outlook_filter** - Filter items by date, sender, type (like Unix `find`) 
-- **outlook_search** - Full-text search with advanced query syntax
-- **outlook_read** - Read complete item content including attachments
+- **outlook_list** - Browse accounts, folders, and items (like `ls`)
+- **outlook_filter** - Filter items by date, sender, type (like `find`) 
+- **outlook_search** - Full-text search with advanced query syntax (like `grep`)
+- **outlook_read** - Read complete item content
 
 ## Prerequisites
 
 - **Windows OS** (required - uses Windows COM automation)
-- **Microsoft Outlook** desktop application installed and configured
-- **Python 3.8+** installed
+- **Microsoft Outlook** desktop application (not "new" Outlook)
+- **Python 3.8+**
 - **Node.js 16+**
 
 ## Limitations
@@ -99,10 +99,10 @@ outlook_filter "myaccount/Calendar" --type event --since 2025-02-01 --until 2025
 ### Read full content
 ```
 Read email by EntryID:
-outlook_read "00000000F0616777..."
+outlook_read "HflJFcbL9/Wq/H25e7YI6F0SU6px57ltK5XvAjg6JhoZXH2ImgroeUtUb6rWQnIUqdg4dSrX=="
 
 Save attachments:
-outlook_read "00000000F0616777..." --save-attachments
+outlook_read "HflJFcbL9/Wq/H25e7YI6F0SU6px57ltK5XvAjg6JhoZXH2ImgroeUtUb6rWQnIUqdg4dSrX==" --save-attachments
 ```
 
 ## Search Syntax
@@ -367,8 +367,6 @@ npm test
 ## Acknowledgments
 
 Built for use with Anthropic's Claude via the Model Context Protocol.
-
-Special thanks to the MCP community and contributors who have helped improve this tool.
 
 ## Author
 
