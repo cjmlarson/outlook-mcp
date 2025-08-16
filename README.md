@@ -310,36 +310,7 @@ MIT License - See LICENSE file for details
 
 ## Maintenance and Support
 
-### Commitment to Users
-This project is actively maintained with the following commitments:
-
-#### **Response Times**
-- **Bug Reports**: Acknowledged within 48 hours, resolved within 1 week for critical issues
-- **Feature Requests**: Reviewed within 1 week, implementation timeline provided
-- **Security Issues**: Immediate response (within 24 hours), expedited fixes
-
-#### **Regular Updates**
-- **Dependency Updates**: Monthly security and compatibility updates
-- **Outlook Compatibility**: Tested with new Outlook releases within 30 days
-- **MCP Protocol**: Updated within 2 weeks of new MCP SDK releases
-- **Documentation**: Kept current with all feature additions and changes
-
-#### **Long-term Support**
-- **Minimum 2-year commitment** to maintain compatibility with current Windows and Outlook versions
-- **Migration assistance** if major architectural changes become necessary
-- **Community involvement** welcomed for feature development and testing
-
-### Issue Resolution Process
-1. **Report Issues**: Use [GitHub Issues](https://github.com/cjmlarson/outlook-mcp/issues) with detailed information
-2. **Triage**: Issues labeled and prioritized within 2 business days
-3. **Communication**: Regular updates provided on issue progress
-4. **Testing**: Community testing encouraged for proposed fixes
-5. **Release**: Timely releases with clear changelogs
-
-### Community Support
-- **Discussion Forum**: GitHub Discussions for questions and feature ideas
-- **Documentation**: Comprehensive guides maintained and updated
-- **Examples**: Real-world usage examples and best practices shared
+This project is maintained as actively as possible. Community involvement welcomed. To report issues, use [GitHub Issues](https://github.com/cjmlarson/outlook-mcp/issues) with detailed information.
 
 ## Contributing
 
