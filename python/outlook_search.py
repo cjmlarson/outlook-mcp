@@ -101,6 +101,13 @@ def parse_search_pattern(pattern):
 def build_dasl_filter(pattern, folder, since=None, until=None):
     """Build DASL filter with smart ci_phrasematch/LIKE selection"""
     
+    # Check if this is a calendar folder
+    is_calendar = False
+    try:
+        is_calendar = (folder.DefaultItemType == 1)  # 1 = olAppointmentItem
+    except:
+        pass
+    
     # Check if store supports instant search
     try:
         store = folder.Store
@@ -156,13 +163,16 @@ def build_dasl_filter(pattern, folder, since=None, until=None):
     # Add date filters if specified
     filters = [text_filter]
     
+    # Use appropriate date field based on folder type
+    date_field = '[Start]' if is_calendar else '[ReceivedTime]'
+    
     if since:
         date_str = since.strftime('%m/%d/%Y')
-        filters.append(f'[ReceivedTime] >= \'{date_str}\'')
+        filters.append(f'{date_field} >= \'{date_str}\'')
     
     if until:
         date_str = until.strftime('%m/%d/%Y')
-        filters.append(f'[ReceivedTime] <= \'{date_str}\'')
+        filters.append(f'{date_field} <= \'{date_str}\'')
     
     # Combine all filters with AND
     if len(filters) == 1:
@@ -173,16 +183,29 @@ def build_dasl_filter(pattern, folder, since=None, until=None):
 def search_folder(folder, pattern, args):
     """Search folder using DASL Restrict for massive performance gain"""
     
+    # Check if this is a calendar folder
+    is_calendar = False
+    try:
+        is_calendar = (folder.DefaultItemType == 1)  # 1 = olAppointmentItem
+    except:
+        pass
+    
+    # For calendar folders, enable recurrence support
+    items = folder.Items
+    if is_calendar:
+        items.IncludeRecurrences = True
+    
     # Build the DASL filter
     filter_str = build_dasl_filter(pattern, folder, args.since, args.until)
     
     try:
         # Use Restrict to get ONLY matching items
         # This is the KEY performance improvement - no manual iteration!
-        items = folder.Items.Restrict(filter_str)
+        items = items.Restrict(filter_str)
         
-        # Sort by date (newest first)
-        items.Sort('[ReceivedTime]', True)
+        # Sort by date (newest first) - use appropriate field
+        date_field = '[Start]' if is_calendar else '[ReceivedTime]'
+        items.Sort(date_field, True)
         
         results = []
         
@@ -195,11 +218,19 @@ def search_folder(folder, pattern, args):
                 folder_path = folder.Name
             
             # Build result dict with metadata
+            # Get appropriate date field based on item type
+            if hasattr(item, 'Start'):
+                date_value = item.Start.isoformat() if item.Start else None
+            elif hasattr(item, 'ReceivedTime'):
+                date_value = item.ReceivedTime.isoformat() if item.ReceivedTime else None
+            else:
+                date_value = None
+            
             result = {
                 'entry_id': encode_entry_id(item.EntryID),  # Base64 encoded to save tokens
                 'subject': safe_text(item.Subject),
-                'from': safe_text(getattr(item, 'SenderName', '')),
-                'date': item.ReceivedTime.isoformat() if hasattr(item, 'ReceivedTime') else None,
+                'from': safe_text(getattr(item, 'SenderName', getattr(item, 'Organizer', ''))),
+                'date': date_value,
                 'path': folder_path
             }
             

@@ -156,21 +156,34 @@ def filter_items(folder, args):
     try:
         items = folder.Items
         
+        # Check if this is a calendar folder
+        is_calendar = False
+        try:
+            is_calendar = (folder.DefaultItemType == 1)  # 1 = olAppointmentItem
+        except:
+            pass
+        
+        # For calendar folders, enable recurrence support
+        if is_calendar:
+            items.IncludeRecurrences = True
+        
         # Build Restrict filter if possible
         filters = []
         
-        # Date filters
+        # Date filters - use appropriate field based on folder type
+        date_field = '[Start]' if is_calendar else '[ReceivedTime]'
+        
         if args.since:
             since_date = datetime.strptime(args.since, '%Y-%m-%d')
-            filters.append(f'[ReceivedTime] >= "{since_date.strftime("%m/%d/%Y")}"')
+            filters.append(f'{date_field} >= "{since_date.strftime("%m/%d/%Y")}"')
         
         if args.until:
             until_date = datetime.strptime(args.until, '%Y-%m-%d')
-            filters.append(f'[ReceivedTime] <= "{until_date.strftime("%m/%d/%Y")}"')
+            filters.append(f'{date_field} <= "{until_date.strftime("%m/%d/%Y")}"')
         
         if args.days:
             start_date = datetime.now() - timedelta(days=args.days)
-            filters.append(f'[ReceivedTime] >= "{start_date.strftime("%m/%d/%Y")}"')
+            filters.append(f'{date_field} >= "{start_date.strftime("%m/%d/%Y")}"')
         
         # Apply Restrict filter if we have any
         if filters:
@@ -178,7 +191,7 @@ def filter_items(folder, args):
             items = items.Restrict(filter_str)
         
         # Sort by date
-        items.Sort('[ReceivedTime]', True)
+        items.Sort(date_field, True)
         
         # Process items
         for item in items:
@@ -204,12 +217,18 @@ def filter_items(folder, args):
                 parent_folder = item.Parent
                 account_name = get_account_name(parent_folder)
                 
+                # Get appropriate date field based on item type
+                if hasattr(item, 'Start'):
+                    date_value = getattr(item, 'Start', None)
+                else:
+                    date_value = getattr(item, 'ReceivedTime', None)
+                
                 # Build result
                 result = {
                     'path': f"{account_name}/{parent_folder.Name}",
                     'entry_id': encode_entry_id(item.EntryID),
                     'from': safe_text(getattr(item, 'SenderName', getattr(item, 'Organizer', '')), 25),
-                    'date': getattr(item, 'ReceivedTime', getattr(item, 'Start', None)),
+                    'date': date_value,
                     'subject': safe_text(getattr(item, 'Subject', ''), 40)
                 }
                 results.append(result)
