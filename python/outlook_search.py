@@ -130,6 +130,82 @@ def parse_search_pattern(pattern):
     
     return 'AND_GROUPS', parsed_groups
 
+def extract_search_terms(pattern):
+    """Extract individual search terms from pattern for scoring."""
+    # Replace legacy OR syntax and split by spaces and ampersands
+    pattern = pattern.replace('|', ' ')
+    # Split by both & and space to get all individual terms
+    terms = []
+    for part in pattern.replace('&', ' ').split():
+        if part and part not in terms:
+            terms.append(part)
+    return terms
+
+def calculate_relevance_score(item, search_terms, check_body=False):
+    """Calculate relevance score based on term matches and field weights."""
+    score = 0
+    matched_terms = set()
+    
+    # Cache property access to avoid duplicate COM calls
+    subject = safe_text(item.Subject).lower()
+    sender = safe_text(getattr(item, 'SenderName', getattr(item, 'Organizer', ''))).lower()
+    
+    for term in search_terms:
+        term_lower = term.lower()
+        
+        # Weight matches by field importance
+        if term_lower in subject:
+            score += 3
+            matched_terms.add(term_lower)
+        if term_lower in sender:
+            score += 2
+            matched_terms.add(term_lower)
+    
+    # Check body if requested (only in content mode to save COM calls)
+    if check_body:
+        try:
+            body = safe_text(getattr(item, 'Body', '')).lower()
+            for term in search_terms:
+                term_lower = term.lower()
+                if term_lower in body:
+                    score += 1
+                    matched_terms.add(term_lower)
+        except:
+            pass
+    
+    # Big multiplier for matching ALL search terms
+    if len(matched_terms) == len(search_terms) and len(search_terms) > 1:
+        score *= 3
+    
+    return score
+
+def calculate_combined_score(item, search_terms, check_body=False, max_age_days=365):
+    """Combine relevance and recency scores."""
+    # Get relevance score
+    relevance = calculate_relevance_score(item, search_terms, check_body)
+    
+    # Get recency score (0-1 scale)
+    try:
+        if hasattr(item, 'Start'):
+            item_date = item.Start
+        elif hasattr(item, 'ReceivedTime'):
+            item_date = item.ReceivedTime
+        else:
+            item_date = datetime.now()
+        
+        # Calculate age in days
+        age = (datetime.now() - item_date).days
+        recency = max(0, 1 - (age / max_age_days))
+    except:
+        recency = 0.5  # Default to middle value if date unavailable
+    
+    # Combine with 70% relevance, 30% recency
+    # Normalize relevance to 0-1 scale (assuming max score ~30)
+    relevance_normalized = min(relevance / 30, 1.0)
+    combined = (relevance_normalized * 0.7) + (recency * 0.3)
+    
+    return combined, relevance
+
 def build_dasl_filter(pattern, folder, since=None, until=None):
     """Build DASL filter with smart ci_phrasematch/LIKE selection"""
     
@@ -235,13 +311,15 @@ def search_folder(folder, pattern, args):
         # This is the KEY performance improvement - no manual iteration!
         items = items.Restrict(filter_str)
         
-        # Sort by date (newest first) - use appropriate field
-        date_field = '[Start]' if is_calendar else '[ReceivedTime]'
-        items.Sort(date_field, True)
+        # Extract search terms for relevance scoring
+        search_terms = extract_search_terms(pattern)
         
-        results = []
+        # Collect all items with relevance scores
+        items_with_scores = []
         
-        # Process results based on output mode
+        # Process results and calculate relevance scores
+        check_body = (args.output_mode == 'content')  # Only check body in content mode
+        
         for item in items:
             # Get folder path for display
             try:
@@ -285,12 +363,7 @@ def search_folder(folder, pattern, args):
                     body = re.sub('<[^<]+?>', '', html)
                 
                 # Find pattern occurrences for context
-                # Extract all search terms from the pattern
-                search_terms = []
-                for part in pattern.replace('|', ' ').split():
-                    if part:
-                        search_terms.append(part)
-                
+                # Use the already extracted search terms
                 for term in search_terms:
                     # Find matches of this term
                     try:
@@ -318,7 +391,27 @@ def search_folder(folder, pattern, args):
                 if matches:  # Only add if there are matches
                     result['matches'] = matches[:2]  # Limit to 2 snippets for token savings
             
-            results.append(result)
+            # Calculate relevance score for this item
+            combined_score, raw_relevance = calculate_combined_score(
+                item, search_terms, check_body=check_body
+            )
+            
+            # Add score to result for sorting
+            result['_score'] = combined_score
+            result['_relevance'] = raw_relevance
+            
+            items_with_scores.append(result)
+        
+        # Sort by combined score (relevance + recency)
+        items_with_scores.sort(key=lambda x: x['_score'], reverse=True)
+        
+        # Remove internal scoring fields before returning
+        results = []
+        for item in items_with_scores:
+            # Remove internal fields
+            item.pop('_score', None)
+            item.pop('_relevance', None)
+            results.append(item)
         
         return results
         
