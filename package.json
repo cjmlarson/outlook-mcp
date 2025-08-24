@@ -51,5 +51,8 @@
   },
   "os": [
     "win32"
-  ]
+  ],
+  "devDependencies": {
+    "archiver": "^7.0.1"
+  }
 }

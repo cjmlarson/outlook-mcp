@@ -179,6 +179,7 @@ This MCP server uses a hybrid approach:
 
 #### Performance issues
 **Symptoms**: Slow response times or timeouts
+
 **Solutions**:
 - **Large mailboxes**: Use filters to narrow search scope
 - **Outlook indexing**: Ensure Outlook search indexing is enabled and up-to-date

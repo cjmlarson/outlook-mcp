@@ -4,7 +4,8 @@
   "version": "2.0.0",
   "description": "Microsoft Outlook integration for Claude Desktop via Model Context Protocol",
   "author": {
-    "name": "Connor Larson"
+    "name": "Connor Larson",
+    "url": "https://github.com/cjmlarson"
   },
   "server": {
     "type": "node",

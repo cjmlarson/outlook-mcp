@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp:*)",
+      "Bash(npm install)",
+      "Bash(py:*)",
+      "Bash(mkdir:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh issue create:*)",
+      "mcp__outlook-mcp__outlook_filter",
+      "mcp__outlook-mcp__outlook_list",
+      "mcp__outlook-mcp__outlook_search",
+      "Bash(gh issue close:*)",
+      "Bash(gh issue list:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:docs.google.com)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:dxt:*)",
+      "mcp__outlook-mcp__outlook_read",
+      "Bash(npm test)",
+      "Bash(gh issue:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
