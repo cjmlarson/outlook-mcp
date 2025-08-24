@@ -23,6 +23,40 @@ def safe_text(text, max_length=None):
     return safe
 
 
+def format_compact_date(dt):
+    """Format datetime to compact string like 'Aug 14' or 'Aug 14 15:30'."""
+    if dt is None:
+        return None
+    
+    try:
+        # Convert string to datetime if needed
+        if isinstance(dt, str):
+            dt = datetime.fromisoformat(dt.replace('Z', '+00:00'))
+        
+        # Format based on whether time is meaningful
+        now = datetime.now()
+        if dt.date() == now.date():
+            # Today - show time
+            return dt.strftime('%H:%M')
+        elif dt.year == now.year:
+            # This year - just month and day
+            return dt.strftime('%b %d')
+        else:
+            # Different year - include year
+            return dt.strftime('%b %d %Y')
+    except:
+        return str(dt)[:16] if dt else None
+
+
+def clean_dict(d):
+    """Remove null, empty string, and empty array values from dictionary."""
+    cleaned = {}
+    for key, value in d.items():
+        if value is not None and value != "" and value != []:
+            cleaned[key] = value
+    return cleaned
+
+
 def parse_outlook_path(path_str):
     """
     Parse an Outlook path like 'myaccount@domain.com/Inbox'
@@ -100,7 +134,7 @@ def find_folder(account, folder_name):
 
 
 def format_date(date_obj):
-    """Format date for display."""
+    """Legacy format date function - kept for compatibility."""
     if not date_obj:
         return "          "
     
@@ -113,7 +147,7 @@ def format_date(date_obj):
         return date_obj.strftime("%Y-%m-%d")
 
 
-def list_accounts(namespace, show_all=False):
+def list_accounts(namespace, show_all=False, show_empty=False):
     """
     List all Outlook accounts and return as JSON.
     """
@@ -172,13 +206,14 @@ def list_accounts(namespace, show_all=False):
                 except:
                     pass
             
-            accounts.append({
+            account_data = clean_dict({
                 'name': account_name,
-                'folder_count': folder_count,
-                'email_folder_count': email_folder_count,
-                'latest_activity': format_date(latest_date) if latest_date else None,
+                'folders': folder_count,
+                'emails': email_folder_count if email_folder_count > 0 else None,
+                'activity': format_compact_date(latest_date),
                 'type': 'account'
             })
+            accounts.append(account_data)
         except:
             pass
     
@@ -191,7 +226,7 @@ def list_accounts(namespace, show_all=False):
     print(json.dumps(output, indent=2, default=str))
 
 
-def list_folders(account, show_all=False):
+def list_folders(account, show_all=False, show_empty=False):
     """
     List folders within an account and return as JSON.
     """
@@ -258,18 +293,55 @@ def list_folders(account, show_all=False):
             except:
                 pass
             
-            folders.append({
+            # Skip empty folders unless show_empty is True
+            if item_count == 0 and not show_empty and not show_all:
+                continue
+            
+            folder_data = clean_dict({
                 'name': folder_name,
-                'item_count': item_count,
-                'folder_type': folder_type,
-                'latest_activity': format_date(latest_date) if latest_date else None,
-                'is_empty': item_count == 0
+                'count': item_count,
+                'type': folder_type,
+                'activity': format_compact_date(latest_date)
             })
+            folders.append(folder_data)
         except:
             pass
     
-    # Sort folders: Mail folders first, then by name
-    folders.sort(key=lambda x: (x['folder_type'] != 'Mail', x['name'].lower()))
+    # Sort folders by activity (most recent first), with empty folders at the end
+    def get_activity_timestamp(folder):
+        activity = folder.get('activity')
+        if not activity:
+            return 0
+        try:
+            # Parse the compact date format back to datetime
+            now = datetime.now()
+            if ':' in activity:  # Time format like "10:03"
+                return now.replace(hour=int(activity.split(':')[0]), minute=int(activity.split(':')[1])).timestamp()
+            elif len(activity.split()) == 2:  # Format like "Aug 22"
+                month_str, day_str = activity.split()
+                months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                         'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                month = months.get(month_str, 1)
+                day = int(day_str)
+                return datetime(now.year, month, day).timestamp()
+            elif len(activity.split()) == 3:  # Format like "Aug 22 2024"
+                month_str, day_str, year_str = activity.split()
+                months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                         'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+                month = months.get(month_str, 1)
+                day = int(day_str)
+                year = int(year_str)
+                return datetime(year, month, day).timestamp()
+            else:
+                return 0
+        except:
+            return 0
+    
+    folders.sort(key=lambda x: (
+        x['count'] == 0,  # Empty folders last
+        -get_activity_timestamp(x),  # Most recent activity first
+        x['name'].lower()
+    ))
     
     # Return JSON output
     output = {
@@ -281,7 +353,7 @@ def list_folders(account, show_all=False):
     print(json.dumps(output, indent=2, default=str))
 
 
-def list_items(folder, count=50, show_all=False):
+def list_items(folder, count=10, show_all=False):
     """
     List items within a folder and return as JSON.
     """
@@ -324,13 +396,14 @@ def list_items(folder, count=50, show_all=False):
         for i in range(1, items_to_show + 1):
             try:
                 item = items.Item(i)
-                results.append({
+                item_data = clean_dict({
                     'subject': safe_text(item.Subject, 100),
-                    'sender': safe_text(item.SenderName, 50),
-                    'date': format_date(item.ReceivedTime),
-                    'unread': getattr(item, 'UnRead', False),
+                    'from': safe_text(item.SenderName, 50),
+                    'date': format_compact_date(item.ReceivedTime),
+                    'unread': True if getattr(item, 'UnRead', False) else None,
                     'entry_id': encode_entry_id(item.EntryID)
                 })
+                results.append(item_data)
             except:
                 pass
                 
@@ -341,12 +414,13 @@ def list_items(folder, count=50, show_all=False):
         for i in range(1, items_to_show + 1):
             try:
                 item = items.Item(i)
-                results.append({
+                item_data = clean_dict({
                     'subject': safe_text(item.Subject, 100),
-                    'start': format_date(item.Start),
-                    'location': safe_text(getattr(item, 'Location', ''), 50),
+                    'start': format_compact_date(item.Start),
+                    'location': safe_text(getattr(item, 'Location', ''), 50) if getattr(item, 'Location', '') else None,
                     'entry_id': encode_entry_id(item.EntryID)
                 })
+                results.append(item_data)
             except:
                 pass
                 
@@ -356,12 +430,13 @@ def list_items(folder, count=50, show_all=False):
         for i in range(1, items_to_show + 1):
             try:
                 item = items.Item(i)
-                results.append({
+                item_data = clean_dict({
                     'name': safe_text(item.FullName, 50),
-                    'email': safe_text(getattr(item, 'Email1Address', ''), 50),
-                    'company': safe_text(getattr(item, 'CompanyName', ''), 50),
+                    'email': safe_text(getattr(item, 'Email1Address', ''), 50) if getattr(item, 'Email1Address', '') else None,
+                    'company': safe_text(getattr(item, 'CompanyName', ''), 50) if getattr(item, 'CompanyName', '') else None,
                     'entry_id': encode_entry_id(item.EntryID)
                 })
+                results.append(item_data)
             except:
                 pass
                 
@@ -373,13 +448,14 @@ def list_items(folder, count=50, show_all=False):
                 item = items.Item(i)
                 status = getattr(item, 'Status', 0)
                 status_map = {0: "Not started", 1: "In progress", 2: "Complete"}
-                results.append({
+                item_data = clean_dict({
                     'subject': safe_text(item.Subject, 100),
-                    'due_date': format_date(getattr(item, 'DueDate', None)),
+                    'due': format_compact_date(getattr(item, 'DueDate', None)),
                     'status': status_map.get(status, "Unknown"),
-                    'percent_complete': getattr(item, 'PercentComplete', 0),
+                    'complete': getattr(item, 'PercentComplete', 0) if getattr(item, 'PercentComplete', 0) > 0 else None,
                     'entry_id': encode_entry_id(item.EntryID)
                 })
+                results.append(item_data)
             except:
                 pass
     else:
@@ -426,8 +502,10 @@ def main():
                         help='Path to list (account or account/folder)')
     parser.add_argument('-a', '--all', action='store_true',
                         help='Show all items/folders including system folders')
-    parser.add_argument('-c', '--count', type=int, default=50,
-                        help='Number of items to show (default: 50)')
+    parser.add_argument('-c', '--count', type=int, default=10,
+                        help='Number of items to show (default: 10)')
+    parser.add_argument('--show-empty', action='store_true',
+                        help='Show empty folders (hidden by default)')
     parser.add_argument('-l', '--long', action='store_true',
                         help='Long format (more details) - not yet implemented')
     
@@ -443,16 +521,16 @@ def main():
         
         if not account_pattern:
             # No path - list all accounts
-            list_accounts(namespace, args.all)
+            list_accounts(namespace, args.all, args.show_empty)
         elif not folder_name:
             # Account only - list folders
             account_idx, account = find_account(namespace, account_pattern)
             if account:
-                list_folders(account, args.all)
+                list_folders(account, args.all, args.show_empty)
             else:
                 print(f"Error: Account '{account_pattern}' not found")
                 print("\nAvailable accounts:")
-                list_accounts(namespace, args.all)
+                list_accounts(namespace, args.all, args.show_empty)
                 return 1
         else:
             # Account and folder - list items
@@ -467,7 +545,7 @@ def main():
             else:
                 print(f"Error: Folder '{folder_name}' not found in '{account.Name}'")
                 print("\nAvailable folders:")
-                list_folders(account, args.all)
+                list_folders(account, args.all, args.show_empty)
                 return 1
         
         return 0

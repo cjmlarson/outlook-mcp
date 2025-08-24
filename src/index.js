@@ -70,9 +70,10 @@ server.registerTool('outlook_list', {
   inputSchema: {
     path: z.string().default('').describe('Path to list (e.g., "myaccount" or "myaccount/Inbox")'),
     all: z.boolean().default(false).describe('Show all items/folders including system folders'),
-    count: z.number().default(50).describe('Number of items to show (default: 50)')
+    count: z.number().default(10).describe('Number of items to show (default: 10)'),
+    show_empty: z.boolean().default(false).describe('Show empty folders (hidden by default)')
   }
-}, async ({ path: outlookPath = '', all = false, count = 50 }) => {
+}, async ({ path: outlookPath = '', all = false, count = 10, show_empty = false }) => {
   try {
     const scriptPath = path.join(__dirname, '..', 'python', 'outlook_list.py');
     let command = `py "${scriptPath}"`;
@@ -83,8 +84,11 @@ server.registerTool('outlook_list', {
     if (all) {
       command += ' --all';
     }
-    if (count !== 50) {
+    if (count !== 10) {
       command += ` --count ${count}`;
+    }
+    if (show_empty) {
+      command += ' --show-empty';
     }
     
     const { stdout } = await execAsync(command);
