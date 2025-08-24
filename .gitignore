@@ -45,3 +45,16 @@ tmp/
 
 # Blog drafts
 blog.md
+
+# Archive folder
+.archive/
+
+# Build artifacts
+*.tgz
+
+# Desktop extension server dependencies
+desktop-extension/server/node_modules/
+desktop-extension/server/package-lock.json
+
+# Test files (if not needed in repo)
+test_*.py
